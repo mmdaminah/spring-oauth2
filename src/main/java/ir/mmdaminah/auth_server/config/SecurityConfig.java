@@ -43,20 +43,18 @@ public class SecurityConfig {
     @Order(1)
     public SecurityFilterChain securityFilterChainForOauth(HttpSecurity http) throws Exception {
 
-//        OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
-        OAuth2AuthorizationServerConfigurer authorizationServerConfigurer =
-                new OAuth2AuthorizationServerConfigurer();
+        OAuth2AuthorizationServerConfigurer authorizationServerConfigurer = OAuth2AuthorizationServerConfigurer.authorizationServer();
 
-        http.getConfigurer(OAuth2AuthorizationServerConfigurer.class)
-                .oidc(Customizer.withDefaults());
-
-        http.apply(authorizationServerConfigurer);
-
-        http.exceptionHandling(e ->
-                e.authenticationEntryPoint(
-                        new LoginUrlAuthenticationEntryPoint("/login")
-                )
-        );
+        http.securityMatcher(authorizationServerConfigurer.getEndpointsMatcher())
+                .with(authorizationServerConfigurer, (authorizationServer) ->
+                        authorizationServer.oidc(Customizer.withDefaults())
+                ).authorizeHttpRequests((authorize) ->
+                        authorize.anyRequest().authenticated())
+                .exceptionHandling(e ->
+                        e.authenticationEntryPoint(
+                                new LoginUrlAuthenticationEntryPoint("/login")
+                        )
+                );
 
         return http.build();
     }
@@ -99,9 +97,10 @@ public class SecurityConfig {
                 .clientSecret("product-secret")
                 .scope(OidcScopes.PROFILE)
                 .scope(OidcScopes.OPENID)
-                .redirectUri("http://localhost:8080/login/oauth2/code/product-service")
+                .redirectUri("http://localhost:8080/login/oauth2/code/product_service")
                 .clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
+                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .authorizationGrantTypes(
                         grantType -> {
                             grantType.add(AuthorizationGrantType.CLIENT_CREDENTIALS);
@@ -145,5 +144,4 @@ public class SecurityConfig {
     public AuthorizationServerSettings authorizationServerSettings() {
         return AuthorizationServerSettings.builder().build();
     }
-
 }
